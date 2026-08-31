@@ -148,7 +148,16 @@ link_config() {
 run_official_installer() {
     need curl
     local ver="${1:-}"
-    local args="dest=$DEST"
+    # O installer oficial cria uma subpasta "kitty.app" DENTRO de dest=.
+    # Logo, passamos o diretorio-pai para que o resultado final seja exatamente $DEST.
+    local parent
+    parent="$(dirname "$DEST")"
+    if [ "$(basename "$DEST")" != "kitty.app" ]; then
+        warn "O installer oficial sempre cria a pasta 'kitty.app'. Com DEST=$DEST"
+        warn "os arquivos irao para $parent/kitty.app e o script nao vai localiza-los."
+        warn "Use KITTY_DEST terminando em '/kitty.app'."
+    fi
+    local args="dest=$parent"
     [ "${KITTY_LAUNCH:-0}" = "1" ] || args="$args launch=n"
     [ -n "$ver" ] && args="$args installer=version-$ver"
 
