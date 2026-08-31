@@ -54,7 +54,7 @@ CURRENT_VERSION_URL="https://sw.kovidgoyal.net/kitty/current-version.txt"
 
 # --------------------------- Utilidades -------------------------------------
 
-c_reset='\033[0m'; c_bold='\033[1m'; c_grn='\033[32m'; c_yel='\033[33m'; c_red='\033[31m'; c_blu='\033[34m'
+c_reset=$'\033[0m'; c_bold=$'\033[1m'; c_grn=$'\033[32m'; c_yel=$'\033[33m'; c_red=$'\033[31m'; c_blu=$'\033[34m'
 log()  { printf "${c_blu}==>${c_reset} %s\n" "$*"; }
 ok()   { printf "${c_grn}✓${c_reset} %s\n" "$*"; }
 warn() { printf "${c_yel}!${c_reset} %s\n" "$*"; }

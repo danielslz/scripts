@@ -48,9 +48,12 @@ DOWNLOADS_PAGE="https://kiro.dev/downloads/"
 #   https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/<VER>/tar/kiro-ide-<VER>-stable-linux-x64.tar.gz
 DL_BASE="https://prod.download.desktop.kiro.dev/releases"
 
+# Diretorio temporario (global p/ o trap EXIT funcionar com `set -u`).
+tmp=""
+
 # --------------------------- Utilidades -------------------------------------
 
-c_reset='\033[0m'; c_bold='\033[1m'; c_grn='\033[32m'; c_yel='\033[33m'; c_red='\033[31m'; c_blu='\033[34m'
+c_reset=$'\033[0m'; c_bold=$'\033[1m'; c_grn=$'\033[32m'; c_yel=$'\033[33m'; c_red=$'\033[31m'; c_blu=$'\033[34m'
 log()  { printf "${c_blu}==>${c_reset} %s\n" "$*"; }
 ok()   { printf "${c_grn}✓${c_reset} %s\n" "$*"; }
 warn() { printf "${c_yel}!${c_reset} %s\n" "$*"; }
@@ -171,7 +174,7 @@ EOF
 # --------------------------- Download + extracao ----------------------------
 
 do_install() {
-    local url ver target tmp tgz staging
+    local url ver target tgz staging
     read -r url ver <<<"$(resolve_target "${1:-}")"
 
     log "Versao alvo: ${c_bold}$ver${c_reset}"
@@ -183,7 +186,7 @@ do_install() {
     fi
 
     tmp="$(mktemp -d -t kiro-ide.XXXXXX)"
-    trap 'rm -rf "$tmp"' EXIT
+    trap 'rm -rf "${tmp:-}"' EXIT
     tgz="$tmp/kiro.tar.gz"
 
     log "Baixando..."
