@@ -200,7 +200,7 @@ do_install() {
     staging="$tmp/extract"
     if [ ! -x "$staging/bin/kiro" ]; then
         local inner
-        inner="$(find "$tmp/extract" -maxdepth 2 -type f -path '*/bin/kiro' -print -quit 2>/dev/null || true)"
+        inner="$(find "$tmp/extract" -maxdepth 4 -path '*/bin/kiro' -print -quit 2>/dev/null || true)"
         [ -n "$inner" ] || die "Estrutura do tarball inesperada: nao encontrei bin/kiro."
         staging="$(dirname "$(dirname "$inner")")"
     fi
