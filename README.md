@@ -15,9 +15,10 @@ projeto e replicam o layout de uma instalação nativa (binários em
 ```
 scripts/
 └── bash/
-    ├── kiro-cli-installer.sh   # Instalador/atualizador do Kiro CLI
-    ├── kiro-ide-installer.sh   # Instalador/atualizador do Kiro IDE
-    └── kitty-installer.sh      # Instalador/atualizador do terminal Kitty
+    ├── kiro-cli-installer.sh         # Instalador/atualizador do Kiro CLI
+    ├── kiro-ide-installer.sh         # Instalador/atualizador do Kiro IDE
+    ├── kitty-installer.sh            # Instalador/atualizador do terminal Kitty
+    └── libreoffice-flatpak-open-fix.sh  # Corrige abertura de docs do LibreOffice via navegador Flatpak
 ```
 
 ## Requisitos gerais
@@ -114,6 +115,41 @@ Variáveis de ambiente opcionais:
 | --- | --- | --- |
 | `KITTY_DEST` | Diretório de instalação | `~/.local/kitty.app` |
 | `KITTY_LAUNCH` | `=1` abre o kitty após instalar | — |
+
+### `bash/libreoffice-flatpak-open-fix.sh`
+
+Corrige o erro **"/run/user/&lt;uid&gt;/doc/.../arquivo.xlsx não existe"** ao abrir
+documentos baixados pelo navegador (**Firefox/LibreWolf Flatpak**) quando o
+**LibreOffice também é Flatpak**.
+
+A causa é um desencontro de app-id: o handler padrão aponta para o `.desktop`
+do subaplicativo (`org.libreoffice.LibreOffice.calc`/`.writer`/`.impress`), que
+não corresponde ao app-id real do Flatpak (`org.libreoffice.LibreOffice`), e o
+document portal se recusa a montar o arquivo no sandbox.
+
+A correção tem duas partes:
+
+1. Define o handler dos documentos (Calc, Writer e Impress) para
+   `org.libreoffice.LibreOffice.desktop`.
+2. Troca `--filesystem=host` por `home` (+ `/run/media`) no LibreOffice,
+   restaurando a integração com o document portal.
+
+- Usa apenas handlers MIME do usuário e `flatpak override --user` (nada fora do `$HOME`).
+- É idempotente; `uninstall` reverte handlers e reseta os overrides.
+
+```bash
+./bash/libreoffice-flatpak-open-fix.sh apply             # aplica tudo (handler + permissões)
+./bash/libreoffice-flatpak-open-fix.sh apply --no-perms  # aplica só o handler
+./bash/libreoffice-flatpak-open-fix.sh check             # há algo a corrigir? (exit 10 se sim)
+./bash/libreoffice-flatpak-open-fix.sh verify            # mostra o estado atual
+./bash/libreoffice-flatpak-open-fix.sh uninstall         # reverte handlers e reseta permissões
+```
+
+Variáveis de ambiente opcionais:
+
+| Variável | Descrição | Default |
+| --- | --- | --- |
+| `LO_FIX_NO_PERMS` | `=1` não altera as permissões do Flatpak | — |
 
 ## Convenções
 
