@@ -43,8 +43,13 @@ DESKTOP_FILE="$APPS_DIR/kiro-ide.desktop"
 URLHANDLER_FILE="$APPS_DIR/kiro-url-handler.desktop"
 MIME_FILE="$MIME_DIR/kiro-url-handler.desktop"
 
-DOWNLOADS_PAGE="https://kiro.dev/downloads/"
-# Padrao de URL de fallback caso o scraping da pagina mude:
+# Endpoint oficial de metadados (JSON) usado pelo proprio Kiro para auto-update.
+# Ex.: https://prod.download.desktop.kiro.dev/stable/metadata-linux-x64-stable.json
+#   { "currentRelease": "X.Y.Z",
+#     "releases": [ { "version": "X.Y.Z",
+#                     "updateTo": { "url": ".../kiro-ide-X.Y.Z-stable-linux-x64.tar.gz" } }, ... ] }
+METADATA_URL="https://prod.download.desktop.kiro.dev/${CHANNEL}/metadata-${ARCH_KEY}-${CHANNEL}.json"
+# Padrao de URL de fallback caso o endpoint de metadados mude:
 #   https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/<VER>/tar/kiro-ide-<VER>-stable-linux-x64.tar.gz
 DL_BASE="https://prod.download.desktop.kiro.dev/releases"
 
@@ -81,11 +86,26 @@ installed_version() {
         | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | tail -n1
 }
 
-# Descobre a URL do tarball "Latest" na pagina oficial de downloads.
+# Descobre a URL do tarball "Latest" via endpoint oficial de metadados (JSON).
+# A pagina de downloads passou a montar os links via JavaScript, entao raspar
+# o HTML nao funciona mais; este e o mesmo JSON que o auto-update do Kiro usa.
 latest_tarball_url() {
-    curl -fsSL --max-time 30 "$DOWNLOADS_PAGE" 2>/dev/null \
-        | grep -oE "https://prod\.download\.desktop\.kiro\.dev/releases/${CHANNEL}/${ARCH_KEY}/signed/[0-9.]+/tar/kiro-ide-[0-9.]+-stable-${ARCH_KEY}\.tar\.gz" \
-        | head -n1
+    local json
+    json="$(curl -fsSL --max-time 30 "$METADATA_URL" 2>/dev/null)" || return 0
+    [ -n "$json" ] || return 0
+
+    if command -v jq >/dev/null 2>&1; then
+        # Primeira URL de release que aponte para o tarball .tar.gz.
+        printf '%s' "$json" \
+            | jq -r '[.releases[]?.updateTo.url // empty]
+                     | map(select(test("kiro-ide-[0-9.]+-stable-'"${ARCH_KEY}"'\\.tar\\.gz$")))
+                     | .[0] // empty'
+    else
+        # Fallback sem jq: extrai a URL do tarball direto do texto do JSON.
+        printf '%s' "$json" \
+            | grep -oE "https://prod\.download\.desktop\.kiro\.dev/releases/${CHANNEL}/${ARCH_KEY}/signed/[0-9.]+/tar/kiro-ide-[0-9.]+-stable-${ARCH_KEY}\.tar\.gz" \
+            | head -n1
+    fi
 }
 
 # Extrai a versao "X.Y.Z" de uma URL de tarball.

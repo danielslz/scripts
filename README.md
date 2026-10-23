@@ -64,7 +64,9 @@ Variáveis de ambiente opcionais:
 ### `bash/kiro-ide-installer.sh`
 
 Instala e atualiza o **Kiro IDE** a partir do tarball "Universal" Linux x64,
-descobrindo a última versão na página oficial de downloads.
+descobrindo a última versão pelo endpoint oficial de metadados em JSON (o mesmo
+usado pelo auto-update do Kiro). Usa `jq` quando disponível, com fallback para
+`grep` caso não esteja instalado.
 
 - IDE extraído em: `~/.kiro-ide`
 - Symlink do executável: `~/.local/bin/kiro`
