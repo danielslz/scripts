@@ -18,7 +18,8 @@ scripts/
     ├── kiro-cli-installer.sh         # Instalador/atualizador do Kiro CLI
     ├── kiro-ide-installer.sh         # Instalador/atualizador do Kiro IDE
     ├── kitty-installer.sh            # Instalador/atualizador do terminal Kitty
-    └── libreoffice-flatpak-open-fix.sh  # Corrige abertura de docs do LibreOffice via navegador Flatpak
+    ├── libreoffice-flatpak-open-fix.sh  # Corrige abertura de docs do LibreOffice via navegador Flatpak
+    └── wkhtmltopdf-distrobox-installer.sh  # Instala wkhtmltopdf (Qt patcheado) via Distrobox
 ```
 
 ## Requisitos gerais
@@ -152,6 +153,46 @@ Variáveis de ambiente opcionais:
 | Variável | Descrição | Default |
 | --- | --- | --- |
 | `LO_FIX_NO_PERMS` | `=1` não altera as permissões do Flatpak | — |
+
+### `bash/wkhtmltopdf-distrobox-installer.sh`
+
+Instala e atualiza o **wkhtmltopdf** (variante **"with patched qt"**) num
+sistema imutável usando **Distrobox**. O `wkhtmltopdf` foi descontinuado (repo
+arquivado em jan/2023) e removido do Homebrew e dos repositórios oficiais; a
+única fonte confiável do binário com Qt patcheado — exigido por sistemas como
+o **SUAP** para renderizar HTML/CSS corretamente — é o RPM oficial arquivado do
+projeto `wkhtmltopdf/packaging`.
+
+O script cria um container Fedora dedicado, instala o RPM oficial lá dentro
+(o `dnf` resolve Qt e fontes) e **exporta** os binários para o host, deixando-os
+disponíveis como se fossem nativos, sem escrever em `/usr`.
+
+- Container Distrobox: `wkhtmltopdf-box` (Fedora)
+- Binários exportados: `~/.local/bin/wkhtmltopdf`, `~/.local/bin/wkhtmltoimage`
+- Estado (tag instalada): `~/.local/share/wkhtmltopdf-distrobox/installed-tag`
+- Detecta arquitetura (`x86_64`/`aarch64`) e escolhe o `.rpm` Fedora mais recente.
+
+```bash
+./bash/wkhtmltopdf-distrobox-installer.sh install     # cria container + instala + exporta
+./bash/wkhtmltopdf-distrobox-installer.sh update      # atualiza se houver versão mais nova
+./bash/wkhtmltopdf-distrobox-installer.sh check       # verifica atualização (exit 10 se houver)
+./bash/wkhtmltopdf-distrobox-installer.sh version     # mostra a versão instalada
+./bash/wkhtmltopdf-distrobox-installer.sh test        # gera um PDF de teste a partir do host
+./bash/wkhtmltopdf-distrobox-installer.sh uninstall   # remove binários exportados e o container
+```
+
+> O container `wkhtmltopdf-box` precisa existir para o binário funcionar (é onde
+> o executável real reside). A primeira chamada pode ter um pequeno atraso
+> enquanto o container inicia.
+
+Variáveis de ambiente opcionais:
+
+| Variável | Descrição | Default |
+| --- | --- | --- |
+| `WK_BOX_NAME` | Nome do container Distrobox | `wkhtmltopdf-box` |
+| `WK_BOX_IMAGE` | Imagem base do container | `registry.fedoraproject.org/fedora:41` |
+| `WK_FEDORA_TAG` | Tag do asset `.rpm` (fallback) | `fedora37` |
+| `WK_PIN_VERSION` | Fixa uma versão específica (ex.: `0.12.6.1-3`) | — |
 
 ## Convenções
 
