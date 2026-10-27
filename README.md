@@ -25,9 +25,10 @@ scripts/
 ## Requisitos gerais
 
 Utilitários comuns esperados no sistema (variam por script): `curl`, `grep`,
-`sort`, `mktemp`, `unzip`, `sha256sum`, `tar`, `find`, `sed`. Cada script
-verifica suas dependências e aborta com mensagem clara se algo estiver
-ausente. Certifique-se de que `~/.local/bin` esteja no seu `PATH`:
+`sort`, `mktemp`, `unzip`, `sha256sum`, `tar`, `find`, `sed`. O instalador do
+`wkhtmltopdf` requer ainda `distrobox` e `podman` (já presentes no Aurora/uBlue).
+Cada script verifica suas dependências e aborta com mensagem clara se algo
+estiver ausente. Certifique-se de que `~/.local/bin` esteja no seu `PATH`:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
@@ -191,15 +192,17 @@ Variáveis de ambiente opcionais:
 | --- | --- | --- |
 | `WK_BOX_NAME` | Nome do container Distrobox | `wkhtmltopdf-box` |
 | `WK_BOX_IMAGE` | Imagem base do container | `registry.fedoraproject.org/fedora:41` |
-| `WK_FEDORA_TAG` | Tag do asset `.rpm` (fallback) | `fedora37` |
+| `WK_FEDORA_TAG` | Força a tag do asset `.rpm` (ex.: `fedora37`) | maior disponível |
 | `WK_PIN_VERSION` | Fixa uma versão específica (ex.: `0.12.6.1-3`) | — |
 
 ## Convenções
 
 - **Comando `check`**: retorna exit code `10` quando há atualização disponível,
   útil para automações e verificações periódicas.
-- **Uninstall preserva dados/config**: cada script remove apenas binários e
-  runtime, mantendo diretórios de configuração e dados do usuário.
+- **Uninstall preserva dados/config**: os instaladores removem apenas binários
+  e runtime, mantendo diretórios de configuração e dados do usuário. Exceção: o
+  instalador do `wkhtmltopdf` também remove o container Distrobox e seu arquivo
+  de estado, pois o binário real reside dentro do container.
 - **Nada é escrito fora do `$HOME`**, garantindo compatibilidade com sistemas
   de arquivos imutáveis.
 

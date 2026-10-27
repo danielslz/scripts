@@ -35,7 +35,7 @@
 # Variaveis de ambiente opcionais:
 #   WK_BOX_NAME     nome do container distrobox (default: wkhtmltopdf-box)
 #   WK_BOX_IMAGE    imagem base do container     (default: registry.fedoraproject.org/fedora:41)
-#   WK_FEDORA_TAG   tag do asset .rpm (fedoraNN)  (default: autodetecta, fallback fedora37)
+#   WK_FEDORA_TAG   forca a tag do asset .rpm    (ex.: fedora37; default: maior disponivel)
 #   WK_PIN_VERSION  fixa uma versao especifica    (ex: 0.12.6.1-3)
 # ---------------------------------------------------------------------------
 
@@ -45,7 +45,6 @@ set -euo pipefail
 
 BOX_NAME="${WK_BOX_NAME:-wkhtmltopdf-box}"
 BOX_IMAGE="${WK_BOX_IMAGE:-registry.fedoraproject.org/fedora:41}"
-FEDORA_TAG_FALLBACK="${WK_FEDORA_TAG:-fedora37}"
 PIN_VERSION="${WK_PIN_VERSION:-}"
 
 BIN_DIR="$HOME/.local/bin"
@@ -134,18 +133,22 @@ release_tag() {
 }
 
 # Escolhe a URL do .rpm Fedora para a arquitetura atual.
-# Prefere a tag Fedora mais alta <= imagem; fallback para FEDORA_TAG_FALLBACK.
+# - Se WK_FEDORA_TAG estiver definido, usa exatamente essa tag (ex.: fedora37).
+# - Caso contrario, escolhe a maior tag fedoraNN disponivel nos assets.
 pick_rpm_url() {
     local json="$1" arch="$2" urls best
     urls="$(echo "$json" | grep -oE 'https://[^"]+\.rpm' | grep -E "(fedora|fc)[0-9]+" | grep -E "\.${arch}\.rpm$" || true)"
     [ -n "$urls" ] || die "Nenhum asset .rpm Fedora para arquitetura $arch na release."
-    # Maior tag fedoraNN disponivel (mais recente e compativel com Fedora atual).
+    # Override explicito via WK_FEDORA_TAG tem prioridade.
+    if [ -n "${WK_FEDORA_TAG:-}" ]; then
+        best="$(echo "$urls" | grep -E "${WK_FEDORA_TAG}\." | head -n1)"
+        [ -n "$best" ] || die "Nenhum asset .rpm para WK_FEDORA_TAG=${WK_FEDORA_TAG} (arch $arch)."
+        echo "$best"; return
+    fi
+    # Maior tag fedoraNN disponivel.
     best="$(echo "$urls" \
         | sed -E 's/.*fedora([0-9]+)\..*/\1\t&/' \
         | sort -nr | head -n1 | cut -f2-)"
-    if [ -z "$best" ]; then
-        best="$(echo "$urls" | grep "$FEDORA_TAG_FALLBACK" | head -n1)"
-    fi
     [ -n "$best" ] || die "Nao consegui selecionar um .rpm adequado."
     echo "$best"
 }
@@ -310,7 +313,7 @@ Comandos:
 Variaveis:
   WK_BOX_NAME=wkhtmltopdf-box                        nome do container
   WK_BOX_IMAGE=registry.fedoraproject.org/fedora:41  imagem base
-  WK_FEDORA_TAG=fedora37                             tag do .rpm (fallback)
+  WK_FEDORA_TAG=fedora37                             forca a tag do .rpm (default: maior disponivel)
   WK_PIN_VERSION=0.12.6.1-3                           fixa uma versao especifica
 EOF
 }
