@@ -19,6 +19,7 @@ scripts/
     ├── kiro-ide-installer.sh         # Instalador/atualizador do Kiro IDE
     ├── kitty-installer.sh            # Instalador/atualizador do terminal Kitty
     ├── libreoffice-flatpak-open-fix.sh  # Corrige abertura de docs do LibreOffice via navegador Flatpak
+    ├── thinkpad-abnt2-slash-fix.sh   # Corrige a tecla "/ ?" do ABNT2 em ThinkPads (Omarchy/Hyprland)
     └── wkhtmltopdf-distrobox-installer.sh  # Instala wkhtmltopdf (Qt patcheado) via Distrobox
 ```
 
@@ -154,6 +155,57 @@ Variáveis de ambiente opcionais:
 | Variável | Descrição | Default |
 | --- | --- | --- |
 | `LO_FIX_NO_PERMS` | `=1` não altera as permissões do Flatpak | — |
+
+### `bash/thinkpad-abnt2-slash-fix.sh`
+
+Corrige a tecla **`/ ?`** (a tecla extra do ABNT2, à esquerda do Shift direito)
+em notebooks **Lenovo ThinkPad** com teclado pt-BR rodando **Omarchy / Hyprland**.
+Sem a correção, só `AltGr+Q` e `AltGr+W` produzem `/` e `?`.
+
+Há duas causas:
+
+1. O Hyprland ignora o `localectl` e usa o modelo padrão `pc105`, que não
+   conhece a tecla extra do ABNT2.
+2. Em alguns ThinkPads (testado no **E14 Gen 3**) o firmware reporta essa tecla
+   como `Control_R` (keycode xkb 105). Como o teclado ABNT2 do ThinkPad não tem
+   Ctrl direito, o keycode é reaproveitado para `/ ? ° ¿`.
+
+A correção:
+
+1. Cria `~/.config/xkb/symbols/brfix`, que herda `br(abnt2)` e troca a tecla `RCTL`.
+2. Grava `kb_layout = "brfix"` e `kb_model = "abnt2"` em `~/.config/hypr/input.lua`
+   (ou `input.conf` em versões antigas do Omarchy), dentro de um bloco marcado.
+3. Recarrega o Hyprland (`hyprctl reload`).
+
+- Escreve apenas dentro do `$HOME` e é idempotente.
+- Faz backup único do arquivo original em `input.lua.bak-thinkpad-fix`.
+- Aborta se já houver `kb_layout`/`kb_model` ativos fora do bloco gerenciado.
+- Recusa rodar fora de um ThinkPad (use `--force` para ignorar).
+- `uninstall` remove o bloco e o arquivo xkb.
+
+```bash
+./bash/thinkpad-abnt2-slash-fix.sh apply          # aplica a correção
+./bash/thinkpad-abnt2-slash-fix.sh apply --force  # aplica mesmo fora de um ThinkPad
+./bash/thinkpad-abnt2-slash-fix.sh check          # há algo a corrigir? (exit 10 se sim)
+./bash/thinkpad-abnt2-slash-fix.sh verify         # mostra o estado atual
+./bash/thinkpad-abnt2-slash-fix.sh uninstall      # remove o bloco e o arquivo xkb
+```
+
+> Se a tecla continuar sem funcionar em outro modelo, rode `wev` e aperte a
+> tecla ao lado do Shift direito. `key: 105 / sym: Control_R` corresponde a
+> `RCTL`; se vier outro código, ajuste `TPFIX_KEY` com o nome xkb equivalente.
+
+Variáveis de ambiente opcionais:
+
+| Variável | Descrição | Default |
+| --- | --- | --- |
+| `TPFIX_BASE_LAYOUT` | Layout base herdado | `br` |
+| `TPFIX_BASE_VARIANT` | Variante do layout base | `abnt2` |
+| `TPFIX_MODEL` | Modelo de teclado | `abnt2` |
+| `TPFIX_KEY` | Tecla xkb que vira `/ ?` | `RCTL` |
+| `TPFIX_LAYOUT_NAME` | Nome do layout criado | `brfix` |
+| `TPFIX_NO_RELOAD` | `=1` não executa `hyprctl reload` | — |
+| `TPFIX_FORCE` | `=1` equivale a `--force` | — |
 
 ### `bash/wkhtmltopdf-distrobox-installer.sh`
 
